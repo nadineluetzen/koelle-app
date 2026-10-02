@@ -68,7 +68,9 @@ function Dashboard({ user }) {
   useEffect(()=>{ load(); }, []);
 
   const confirmed = participants.filter(p=>p.status==='confirmed');
-  const waiting = participants.filter(p=>p.status==='waiting');
+const waiting = participants
+  .filter(p => p.status === 'waiting')
+  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   const free = Math.max(0, CAPACITY - confirmed.length);
 
   const filtered = useMemo(()=>{
@@ -218,15 +220,15 @@ html += `<div class="stop-count">Anzahl: ${list.length} Personen</div>`;
       <section className="toolbar noPrint"><div className="search"><Search size={18}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Suche nach Namen oder Notiz..."/></div><button onClick={()=>openNew()}><Plus size={18}/> Teilnehmer hinzufügen</button></section>
       {loading ? <p>Lade Daten...</p> : <section className="lists">
         <div className="confirmed"><h2>Teilnehmer nach Haltestelle</h2><div className="stopGrid">{stops.map(s=>{ const list = filtered.filter(p=>p.status==='confirmed' && p.stop_id===s.id).sort((a,b)=>a.name.localeCompare(b.name,'de')); return <div className="stopCard" key={s.id}><h3>{s.time} Uhr</h3><p>{s.place} – {s.label}</p><span className="badge">{list.length} Personen</span>{list.map(p=><Person key={p.id} p={p} stopName={stopName} edit={edit} remove={remove} moveStatus={moveStatus}/>)}</div>})}</div></div>
-        <div className="wait"><h2>Warteliste ({waiting.length})</h2>{waiting.sort((a,b)=>a.name.localeCompare(b.name,'de')).map(p=><Person key={p.id} p={p} stopName={stopName} edit={edit} remove={remove} moveStatus={moveStatus} waiting />)}</div>
+<div className="wait"><h2>Warteliste ({waiting.length})</h2>{waiting.map((p,index)=><Person key={p.id} p={p} stopName={stopName} edit={edit} remove={remove} moveStatus={moveStatus} waiting position={index + 1} />)}</div>
       </section>}
     </main>
     {showForm && <div className="modal noPrint"><form onSubmit={save} className="modalCard"><h2>{form.id ? 'Teilnehmer bearbeiten' : 'Teilnehmer hinzufügen'}</h2><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Name" required autoFocus/><select value={form.stop_id} onChange={e=>setForm({...form,stop_id:e.target.value})} required>{stops.map(s=><option value={s.id} key={s.id}>{s.time} Uhr – {s.place}, {s.label}</option>)}</select><input maxLength="100" value={form.note||''} onChange={e=>setForm({...form,note:e.target.value})} placeholder="Kurze Notiz (optional)"/><select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option value="confirmed">Teilnehmerliste</option><option value="waiting">Warteliste</option></select><div className="row"><button type="button" className="secondary" onClick={()=>setShowForm(false)}>Abbrechen</button><button>Speichern</button></div></form></div>}
   </div>
 }
 
-function Person({ p, stopName, edit, remove, moveStatus, waiting=false }) {
-  return <div className="person"><div><b>{p.name}</b>{waiting && <small>{stopName(p.stop_id)}</small>}{p.note && <em>{p.note}</em>}</div><div className="actions noPrint"><button title="Bearbeiten" onClick={()=>edit(p)}><Edit size={15}/></button>{waiting ? <button onClick={()=>moveStatus(p,'confirmed')}>Übernehmen</button> : <button onClick={()=>moveStatus(p,'waiting')}>Warteliste</button>}<button title="Löschen" onClick={()=>remove(p.id)}><Trash2 size={15}/></button></div></div>
+function Person({ p, stopName, edit, remove, moveStatus, waiting=false, position }) {
+  return <div className="person"><div><b>{waiting ? `${position}. ${p.name}` : p.name}</b>{waiting && <small>{stopName(p.stop_id)}</small>}{p.note && <em>{p.note}</em>}</div><div className="actions noPrint"><button title="Bearbeiten" onClick={()=>edit(p)}><Edit size={15}/></button>{waiting ? <button onClick={()=>moveStatus(p,'confirmed')}>Übernehmen</button> : <button onClick={()=>moveStatus(p,'waiting')}>Warteliste</button>}<button title="Löschen" onClick={()=>remove(p.id)}><Trash2 size={15}/></button></div></div>
 }
 
 createRoot(document.getElementById('root')).render(<App />)
