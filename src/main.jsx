@@ -4,7 +4,7 @@ import { supabase } from './supabaseClient';
 import { Bus, LogOut, Plus, Search, Trash2, Edit, FileDown, Users, Clock, MapPin } from 'lucide-react';
 import './styles.css';
 
-const CAPACITY = 48;
+const CAPACITY = 52;
 
 function niceName(email='') {
   if (email.toLowerCase().includes('jana')) return 'Jana';
