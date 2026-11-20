@@ -57,6 +57,23 @@ function Dashboard({ user }) {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [capacity, setCapacity] = useState(CAPACITY);
+  async function saveCapacity() {
+  if (!Number.isInteger(capacity) || capacity < 1) {
+    alert('Bitte eine gültige Anzahl an Busplätzen eingeben.');
+    return;
+  }
+
+  const { error } = await supabase
+    .from('app_settings')
+    .update({ capacity })
+    .eq('id', 1);
+
+  if (error) {
+    alert('Speichern fehlgeschlagen: ' + error.message);
+  } else {
+    alert('Busplätze erfolgreich gespeichert!');
+  }
+}
 
   async function load() {
     setLoading(true);
@@ -64,7 +81,17 @@ function Dashboard({ user }) {
       supabase.from('stops').select('*').order('sort_order'),
       supabase.from('participants').select('*').order('name')
     ]);
-    setStops(s || []); setParticipants(p || []); setLoading(false);
+    const { data: settings } = await supabase
+  .from('app_settings')
+  .select('capacity')
+  .eq('id', 1)
+  .single();
+
+if (settings) setCapacity(settings.capacity);
+
+setStops(s || []);
+setParticipants(p || []);
+setLoading(false);
   }
   useEffect(()=>{ load(); }, []);
 
@@ -72,7 +99,7 @@ function Dashboard({ user }) {
 const waiting = participants
   .filter(p => p.status === 'waiting')
   .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-  const free = Math.max(0, CAPACITY - confirmed.length);
+  const free = Math.max(0, capacity - confirmed.length);
 
   const filtered = useMemo(()=>{
     const q = search.trim().toLowerCase();
@@ -80,7 +107,7 @@ const waiting = participants
   }, [participants, search]);
 
   function openNew(status='confirmed') {
-    setForm({ id:null, name:'', stop_id:stops[0]?.id || '', note:'', status: confirmed.length >= CAPACITY ? 'waiting' : status });
+    setForm({ id:null, name:'', stop_id:stops[0]?.id || '', note:'', status: confirmed.length >= capacity ? 'waiting' : status });
     setShowForm(true);
   }
   function edit(p) { setForm({ ...p, stop_id: p.stop_id || '' }); setShowForm(true); }
@@ -216,8 +243,22 @@ html += `<div class="stop-count">Anzahl: ${list.length} Personen</div>`;
     <div>📍 Köln</div>
   </div>
 </div></div></div>
-        <div className="seatCard"><div><strong>{confirmed.length}</strong> / {CAPACITY}<span>Plätze belegt</span></div><div><strong className="green">{free}</strong><span>Plätze frei</span></div><progress max={CAPACITY} value={confirmed.length}/></div>
-      </section>
+        <div className="seatCard"><div><strong>{confirmed.length}</strong> / {capacity}<span>Plätze belegt</span></div><div><strong className="green">{free}</strong><span>Plätze frei</span></div><progress max={capacity} value={confirmed.length}/></div>
+      
+<div className="noPrint" style={{marginTop:12}}>
+  <label>
+    Busplätze:
+    <input
+      type="number"
+      min="1"
+      value={capacity}
+      onChange={e => setCapacity(Number(e.target.value))}
+      style={{width:75, marginLeft:10, padding:6}}
+    />
+  </label>
+  <button type="button" onClick={saveCapacity} style={{marginLeft:10, padding:6}}>Speichern</button>
+</div>
+</section>
       <section className="toolbar noPrint"><div className="search"><Search size={18}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Suche nach Namen oder Notiz..."/></div><button onClick={()=>openNew()}><Plus size={18}/> Teilnehmer hinzufügen</button></section>
       {loading ? <p>Lade Daten...</p> : <section className="lists">
         <div className="confirmed"><h2>Teilnehmer nach Haltestelle</h2><div className="stopGrid">{stops.map(s=>{ const list = filtered.filter(p=>p.status==='confirmed' && p.stop_id===s.id).sort((a,b)=>a.name.localeCompare(b.name,'de')); return <div className="stopCard" key={s.id}><h3>{s.time} Uhr</h3><p>{s.place} – {s.label}</p><span className="badge">{list.length} Personen</span>{list.map(p=><Person key={p.id} p={p} stopName={stopName} edit={edit} remove={remove} moveStatus={moveStatus}/>)}</div>})}</div></div>
