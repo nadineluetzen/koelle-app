@@ -56,6 +56,7 @@ function Dashboard({ user }) {
   const [form, setForm] = useState({ id:null, name:'', stop_id:'', note:'', status:'confirmed' });
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [capacity, setCapacity] = useState(CAPACITY);
 
   async function load() {
     setLoading(true);
